@@ -52,7 +52,10 @@ namespace MicroRabbit.Banking.Api
                 c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "Banking Microservice", Version = "v1" });
             });
             //Domain Bus
-            services.AddTransient<IEventBus, RabbitMQBus>();
+            services.AddTransient<IEventBus, RabbitMQBus>(sp => {
+                var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+                return new RabbitMQBus(sp.GetService<IMediator>(), scopeFactory);
+            });
 
             //Banking domain commands
             services.AddTransient<IRequestHandler<CreateTransferCommand, bool>, TransferCommandHandler>();
