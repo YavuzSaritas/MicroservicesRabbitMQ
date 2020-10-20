@@ -3,8 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MediatR;
+using MicroRabbit.Banking.Domain.Event;
+using MicroRabbit.Domain.Core.Bus;
+using MicroRabbit.Infra.Bus;
 using MicroRabbit.Infra.IoC;
+using MicroRabbit.Tranfer.Domain.Event;
+using MicroRabbit.Tranfer.Domain.EventHandlers;
+using MicroRabbit.Tranfer.Domain.Interfaces;
+using MicroRabbit.Transfer.Application.Interfaces;
+using MicroRabbit.Transfer.Application.Services;
 using MicroRabbit.Transfer.Data.Context;
+using MicroRabbit.Transfer.Data.Repository;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -43,7 +52,17 @@ namespace MicroRabbit.Transfer.Api
                 c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "Transfer Microservice", Version = "v1" });
             });
 
-            RegisterServices(services);//MicroRabbit.Infra.IoC Baðlandý.
+            // Domain Bus
+            services.AddTransient<IEventBus, RabbitMQBus>();
+            //Application Layer
+            services.AddTransient<ITransferServices, TransferService>();
+            //Data            
+            services.AddTransient<ITransferRepository, TransferRepository>();
+            services.AddTransient<TransferDbContext>();
+            //Domain Event
+            services.AddTransient<IEventHandler<MicroRabbit.Tranfer.Domain.Event.TransferCreatedEvent>, TransferEventHandler>();
+
+            //RegisterServices(services);//MicroRabbit.Infra.IoC Baðlandý.
         }
         private void RegisterServices(IServiceCollection services)
         {
@@ -75,6 +94,14 @@ namespace MicroRabbit.Transfer.Api
             {
                 endpoints.MapControllers();
             });
+            ConfigureEventBus(app);
+        }
+
+        private void ConfigureEventBus(IApplicationBuilder app)
+        {
+            //Subscribe Configure
+            var eventBus = app.ApplicationServices.GetRequiredService<IEventBus>();
+            eventBus.Subscribe<MicroRabbit.Tranfer.Domain.Event.TransferCreatedEvent, TransferEventHandler>();
         }
     }
 }

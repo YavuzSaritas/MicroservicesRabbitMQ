@@ -3,7 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MediatR;
+using MicroRabbit.Banking.Application.Interfaces;
+using MicroRabbit.Banking.Application.Services;
 using MicroRabbit.Banking.Data.Context;
+using MicroRabbit.Banking.Data.Repository;
+using MicroRabbit.Banking.Domain.Commands;
+using MicroRabbit.Banking.Domain.CommandsHandlers;
+using MicroRabbit.Banking.Domain.Interfaces;
+using MicroRabbit.Domain.Core.Bus;
+using MicroRabbit.Infra.Bus;
 using MicroRabbit.Infra.IoC;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -43,8 +51,21 @@ namespace MicroRabbit.Banking.Api
             {
                 c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "Banking Microservice", Version = "v1" });
             });
+            //Domain Bus
+            services.AddTransient<IEventBus, RabbitMQBus>();
 
-            RegisterServices(services);//MicroRabbit.Infra.IoC Baðlandý.
+            //Banking domain commands
+            services.AddTransient<IRequestHandler<CreateTransferCommand, bool>, TransferCommandHandler>();
+
+            //Application Layer
+            services.AddTransient<IAccountServices, AccountService>();
+
+            //Data
+            services.AddTransient<IAccountRepository, AccountRepository>();
+ 
+            services.AddTransient<BankingDbContext>();
+
+            //RegisterServices(services);//MicroRabbit.Infra.IoC Baðlandý.
         }
 
         private void RegisterServices(IServiceCollection services)
